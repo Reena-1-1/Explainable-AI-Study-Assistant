@@ -1,5 +1,7 @@
+
 """PDF -> list of pages. Owner: Harsha."""
 import fitz  # PyMuPDF
+import re
 
 
 def extract_pages(pdf_bytes: bytes):
@@ -7,5 +9,10 @@ def extract_pages(pdf_bytes: bytes):
     pages = []
     with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
         for i, page in enumerate(doc, start=1):
-            pages.append({"page": i, "text": page.get_text()})
+            text = page.get_text()
+
+            # Remove lines containing only a page number.
+            text = re.sub(r"(?m)^\s*\d+\s*$", "", text)
+
+            pages.append({"page": i, "text": text})
     return pages
