@@ -1,24 +1,11 @@
-import fitz
+"""PDF -> list of pages. Owner: Harsha."""
+import fitz  # PyMuPDF
 
 
-def extract_text_from_pdf(pdf_file):
-    """
-    Extract text from every page of an uploaded PDF.
-    Returns the extracted text along with page numbers.
-    """
-
-    pdf_document = fitz.open(stream=pdf_file.read(), filetype="pdf")
-
+def extract_pages(pdf_bytes: bytes):
+    """Return [{"page": 1, "text": "..."}, ...] (page numbers start at 1)."""
     pages = []
-
-    for page_number, page in enumerate(pdf_document, start=1):
-        text = page.get_text("text")
-
-        pages.append({
-            "page": page_number,
-            "text": text
-        })
-
-    pdf_document.close()
-
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+        for i, page in enumerate(doc, start=1):
+            pages.append({"page": i, "text": page.get_text()})
     return pages

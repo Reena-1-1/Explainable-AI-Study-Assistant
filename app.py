@@ -1,77 +1,57 @@
+"""StudyLens AI - Streamlit app. Owner: Anjali (UI)."""
 import streamlit as st
 
-from src.pdf_processor import extract_text_from_pdf
-from src.text_processor import create_chunks
+from src.pdf_processor import extract_pages
+from src.text_processor import chunk_pages
+from src.retriever import Retriever
+from src.answerer import answer
 
-
-st.set_page_config(
-    page_title="StudyLens AI",
-    page_icon="📚"
-)
-
-
+st.set_page_config(page_title="StudyLens AI", page_icon="📚", layout="wide")
 st.title("📚 StudyLens AI")
-
-st.write(
-    "An Explainable Multimodal AI Study Assistant"
-)
+st.caption("Ask questions about your PDF. Every answer comes with its evidence.")
 
 
-st.subheader("Upload Study Material")
-
-uploaded_file = st.file_uploader(
-    "Upload a PDF",
-    type=["pdf"]
-)
+@st.cache_resource
+def get_retriever_class():
+    return Retriever
 
 
-if uploaded_file is not None:
+uploaded = st.file_uploader("Upload a PDF", type="pdf")
 
-    st.success(f"Uploaded: {uploaded_file.name}")
+if uploaded:
+    if st.session_state.get("file_name") != uploaded.name:
+        pages = extract_pages(uploaded.getvalue())
+        chunks = chunk_pages(pages)
+        if not chunks:
+            st.error("No text found. This may be a scanned PDF (OCR not supported yet).")
+            st.stop()
+        with st.spinner("Indexing document..."):
+            r = get_retriever_class()()
+            r.build(chunks)
+        st.session_state.update(file_name=uploaded.name, pages=pages,
+                                chunks=chunks, retriever=r)
 
-    # Step 1: Extract text from PDF
-    pages = extract_text_from_pdf(uploaded_file)
+    st.success(f"Loaded {len(st.session_state.pages)} pages, "
+               f"{len(st.session_state.chunks)} chunks.")
 
-    # Step 2: Display extracted text
-    st.subheader("Extracted Text")
+    question = st.text_input("Ask a question about your document")
+    if question:
+        results = st.session_state.retriever.search(question, k=3)
+        st.subheader("Answer")
+        try:
+            ans = answer(question, results)
+        except Exception as e:
+            ans = None
+            st.warning(f"LLM call failed: {e}")
+        st.write(ans if ans else "(No LLM key set - showing evidence only.)")
 
-    for page in pages:
+        st.subheader("Evidence from the document")
+        for i, r in enumerate(results, 1):
+            with st.expander(f"#{i} - Page {r['page']} (similarity {r['score']:.2f})",
+                             expanded=(i == 1)):
+                st.write(r["text"])
 
-        st.markdown(f"### Page {page['page']}")
-
-        if page["text"].strip():
-
-            st.text_area(
-                f"Page {page['page']} text",
-                page["text"],
-                height=200
-            )
-
-        else:
-
-            st.warning(
-                f"No text found on page {page['page']}."
-            )
-
-
-    # Step 3: Create chunks
-    chunks = create_chunks(pages)
-
-
-    # Step 4: Display chunks
-    st.subheader("Document Chunks")
-
-    st.write(
-        f"Total chunks created: {len(chunks)}"
-    )
-
-
-    for i, chunk in enumerate(chunks[:5], start=1):
-
-        st.markdown(f"### Chunk {i}")
-
-        st.write(
-            f"Source page: {chunk['page']}"
-        )
-
-        st.text(chunk["text"])
+    with st.sidebar:
+        st.header("Document")
+        page_no = st.number_input("View page text", 1, len(st.session_state.pages), 1)
+        st.text_area("Text", st.session_state.pages[page_no - 1]["text"], height=300)

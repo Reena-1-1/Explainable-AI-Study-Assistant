@@ -1,0 +1,6 @@
+Hi team! Our repo: https://github.com/Reena-1-1/Explainable-AI-Study-Assistant
+1. Accept the GitHub invite in your email.
+2. Open the repo, go to the team_instructions folder, read GIT_STEPS_COMMON.md and your own file (HARSHA.md / ANJALI.md / SHIRIN.md).
+3. Follow the setup, work only on your own files, and make a commit after each task.
+4. Never push to main. Open a Pull Request when done. Never share or commit API keys.
+Target: first Pull Request within 3 days. Message me if you get stuck.
