@@ -21,3 +21,25 @@ Summary:
 
 Relation to our project:
 Our project uses Sentence Transformers to represent text chunks as embeddings, helping retrieve passages that are semantically relevant to a student's question.
+
+3. Billion-scale Similarity Search with GPUs (Johnson, Douze, and Jégou, 2017)
+
+Summary:
+
+- This paper introduces FAISS, a library designed for efficient similarity search and clustering of dense vectors.
+- It explains methods for finding similar vectors among large collections of data.
+- FAISS supports fast retrieval, making it useful for applications that compare questions with document representations.
+
+Relation to our project:
+Our Study Assistant uses FAISS to search for text chunks whose embeddings are similar to the user's question and retrieve relevant passages from a PDF.
+
+4. “Why Should I Trust You?”: Explaining the Predictions of Any Classifier (Ribeiro, Singh, and Guestrin, 2016)
+
+Summary:
+
+- This paper introduces LIME, a technique for explaining individual machine-learning predictions.
+- LIME approximates a complex model locally to show which input features influence a particular prediction.
+- The method aims to help people understand and evaluate the behaviour of machine-learning systems.
+
+Relation to our project:
+LIME is relevant to the broader goal of Explainable AI because it focuses on making model decisions easier to understand. Our project uses retrieved evidence passages and page citations to help users verify answers, rather than implementing LIME itself.
