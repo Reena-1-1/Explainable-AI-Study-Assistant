@@ -16,3 +16,8 @@ def extract_pages(pdf_bytes: bytes):
 
             pages.append({"page": i, "text": text})
     return pages
+
+
+def count_empty_pages(pages):
+    """Return the number of pages that contain no meaningful text."""
+    return sum(1 for page in pages if not page["text"].strip())
