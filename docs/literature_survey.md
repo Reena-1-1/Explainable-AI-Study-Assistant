@@ -43,3 +43,25 @@ Summary:
 
 Relation to our project:
 LIME is relevant to the broader goal of Explainable AI because it focuses on making model decisions easier to understand. Our project uses retrieved evidence passages and page citations to help users verify answers, rather than implementing LIME itself.
+
+5. A Unified Approach to Interpreting Model Predictions (Lundberg and Lee, 2017)
+
+Summary:
+
+- This paper introduces SHAP, a framework for explaining the predictions made by machine-learning models.
+- SHAP assigns importance values to input features to show how they contribute to an individual prediction.
+- It provides a consistent way to understand model behaviour and makes complex predictions easier to interpret.
+
+Relation to our project:
+SHAP supports the broader goal of explainable AI. Our project takes a different approach by showing retrieved PDF passages and page citations as evidence for answers rather than using SHAP feature explanations.
+
+6. QED: A Linguistically Principled Framework for Explainable Question Answering (Lamm et al., 2021)
+
+Summary:
+
+- This paper presents QED, a framework for providing explanations alongside answers produced by question-answering systems.
+- It represents relationships between questions, answers and supporting linguistic evidence.
+- The researchers also studied whether explanations help people identify errors in question-answering systems.
+
+Relation to our project:
+QED is closely related to our project's goal of making answers easier to verify. Our Study Assistant supports this goal by presenting relevant passages and page references from the uploaded PDF.
