@@ -11,7 +11,7 @@ pdf, csv_path = sys.argv[1], sys.argv[2]
 chunks = chunk_pages(extract_pages(open(pdf, "rb").read()))
 r = Retriever(); r.build(chunks)
 
-rows = list(csv.DictReader(open(csv_path, encoding="utf-8")))
+rows = list(csv.DictReader(open(csv_path, encoding="utf-8"), delimiter="\t"))
 top1 = top3 = 0
 for row in rows:
     pages = [x["page"] for x in r.search(row["question"], k=3)]
