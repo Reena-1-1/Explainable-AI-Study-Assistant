@@ -1,3 +1,21 @@
-question,expected_page
-Replace with a question from your PDF,1
-Replace with another question,2
+question	expected_page
+What is deep learning?	6
+Why is deep learning called 'deep' learning?	6
+List four applications of deep learning.	9
+Mention two limitations of traditional machine learning that motivated deep learning.	11
+State two differences between machine learning and deep learning.	12
+What is supervised learning?	17
+Give one example of supervised learning.	18
+What is the difference between regression and classification?	19
+What is unsupervised learning?	21
+What is clustering? Give one example algorithm.	22
+List four classification algorithms.	24
+What are the steps to build a classification model?	27
+What is a cost function?	33
+Define gradient descent and state its purpose.	34
+What is the difference between batch gradient descent and stochastic gradient descent?	37
+What is the difference between supervised learning and reinforcement learning?	0
+What is the Adam optimizer and how does it combine momentum and adaptive learning rates?	0
+Explain the role of convolution and pooling layers in a convolutional neural network.	0
+What is transfer learning, and when is it useful?	0
+Describe how a recurrent neural network handles sequential data.	0

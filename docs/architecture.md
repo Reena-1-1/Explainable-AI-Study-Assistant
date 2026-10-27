@@ -7,3 +7,4 @@
 5. app.py - upload, question box, answer, evidence expanders
 
 Why it is "explainable": every answer shows the source passages, page numbers and similarity scores.
+![Architecture](architecture.png)
