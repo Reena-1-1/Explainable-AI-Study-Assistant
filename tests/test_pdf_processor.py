@@ -1,5 +1,5 @@
 import fitz
-from src.pdf_processor import extract_pages
+from src.pdf_processor import extract_pages, count_empty_pages
 
 
 def make_pdf(texts):
@@ -20,3 +20,14 @@ def test_extracts_each_page_with_number():
 def test_blank_page_returns_empty_text():
     pages = extract_pages(make_pdf([""]))
     assert pages[0]["text"].strip() == ""
+    
+    
+def test_count_empty_pages():
+    pages = [
+        {"page": 1, "text": "Hello"},
+        {"page": 2, "text": ""},
+        {"page": 3, "text": "   "},
+        {"page": 4, "text": "World"},
+    ]
+
+    assert count_empty_pages(pages) == 2
