@@ -19,7 +19,8 @@ except ImportError:
 
 st.set_page_config(page_title="StudyLens AI", page_icon="📚", layout="wide")
 init_db()
-
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 st.markdown("""
 <style>
 .hero {padding: 1.6rem 2rem; border-radius: 16px; color: white;
@@ -86,7 +87,7 @@ def set_question(text):
 with st.sidebar:
     st.header("📄 Document")
     uploaded = st.file_uploader("Upload a PDF", type="pdf")
-    k = st.slider("Passages to retrieve", 1, 5, 3)
+    k = st.slider("Number of passages (k)", 1, 5, 3)
     show_pages = st.toggle("Show highlighted PDF page", value=True)
     st.divider()
     st.subheader("🕘 Recent questions")
@@ -95,7 +96,14 @@ with st.sidebar:
         st.caption("No questions yet.")
     for h in history:
         st.caption(f"**{h['question']}**  \nPages: {h['pages']}")
-
+with st.expander("📌 How to use StudyLens AI"):
+    st.markdown("""
+    1. Upload your lecture PDF using the sidebar.
+    2. Type your question in the Ask section.
+    3. Read the generated answer.
+    4. Check the highlighted evidence and page numbers.
+    5. Use Browse document to read extracted PDF text.
+    """)
 # ---------------- Hero ----------------
 st.markdown("""<div class="hero"><h1>📚 StudyLens AI</h1>
 <p>Ask questions about your PDF. Every answer shows the exact evidence it came from.</p></div>""",
@@ -141,7 +149,6 @@ with tab_ask:
     e3.button("Important points", on_click=set_question, args=("What are the most important points?",), use_container_width=True)
 
     question = st.text_input("Your question", key="q", placeholder="e.g. What is overfitting?")
-
     if question:
         results = st.session_state.retriever.search(question, k=k)
         cache_key = (st.session_state.file_name, question, k)
@@ -155,7 +162,11 @@ with tab_ask:
             save_qa(question, ans or "", results, st.session_state.file_name)
             st.session_state.last_key, st.session_state.last_ans = cache_key, ans
         ans = st.session_state.last_ans
-
+        if not st.session_state.chat_history or st.session_state.chat_history[-1]["question"] != question:
+            st.session_state.chat_history.append({
+                "question": question,
+                "answer": ans or "No answer available."
+            })
         st.subheader("Answer")
         if ans is None:
             st.info("No LLM key set. Showing evidence only.")
@@ -178,7 +189,14 @@ with tab_ask:
                         st.image(img, use_container_width=True)
                     else:
                         st.caption("Could not render this page.")
-
+with st.sidebar.expander("Chat History"):
+    if st.session_state.chat_history:
+        for item in reversed(st.session_state.chat_history):
+            st.markdown(f"**Q:** {item['question']}")
+            st.write(f"**A:** {item['answer']}")
+            st.divider()
+    else:
+        st.caption("No chat history yet.")
 with tab_doc:
     page_no = st.number_input("Page", 1, len(pages), 1)
     st.text_area("Extracted text", pages[page_no - 1]["text"], height=350)
