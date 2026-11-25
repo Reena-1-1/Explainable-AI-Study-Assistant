@@ -10,6 +10,8 @@ from src.text_processor import chunk_pages
 from src.retriever import Retriever
 from src.answerer import answer
 from src.database import init_db, save_qa, get_history
+from src.study_tools_ui import render_study_tools
+from src.study_tools_ui import render_study_tools
 
 try:
     from src.pdf_processor import count_empty_pages
@@ -134,8 +136,7 @@ m3.metric("Pages without text", empty)
 if empty:
     st.warning(f"{empty} page(s) have no extractable text (possibly scanned images).")
 
-tab_ask, tab_doc = st.tabs(["💬 Ask", "📖 Browse document"])
-
+tab_ask, tab_doc, tab_study = st.tabs(["💬 Ask", "📖 Browse document", "🎓 Study tools"])
 with tab_ask:
     st.caption("Try an example:")
     e1, e2, e3 = st.columns(3)
@@ -186,5 +187,7 @@ with tab_doc:
     page_no = st.number_input("Page", 1, len(pages), 1)
     st.text_area("Extracted text", pages[page_no - 1]["text"], height=350)
 
+with tab_study:
+    render_study_tools(chunks, st.session_state.file_name)
 st.divider()
 st.caption("StudyLens AI · Team: Reena, Harsha, Anjali, Shirin")
