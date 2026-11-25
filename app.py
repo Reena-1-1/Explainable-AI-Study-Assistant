@@ -1,6 +1,7 @@
 """StudyLens AI - Streamlit app (redesigned UI)."""
 import html
 import re
+import hashlib
 
 import fitz  # PyMuPDF
 import streamlit as st
@@ -10,6 +11,8 @@ from src.text_processor import chunk_pages
 from src.retriever import Retriever
 from src.answerer import answer
 from src.database import init_db, save_qa, get_history
+from src.website_processor import extract_website_text, generate_website_notes
+from src.youtube_processor import extract_youtube_transcript
 
 try:
     from src.pdf_processor import count_empty_pages
@@ -82,10 +85,98 @@ def set_question(text):
     st.session_state.q = text
 
 
+# ---------------- Website to Notes ----------------
+st.markdown("## 🌐 Website to Notes")
+st.caption("Enter a webpage URL to extract its content and generate study notes.")
+
+website_url = st.text_input(
+    "Website URL",
+    placeholder="https://example.com"
+)
+
+if st.button("Generate Website Notes", key="generate_website_notes"):
+    if not website_url.strip():
+        st.warning("Please enter a website URL.")
+    else:
+        try:
+            with st.spinner("Extracting website content and generating notes..."):
+                website = extract_website_text(website_url)
+
+                source_text = website["text"][:12000]
+
+                results = [{
+                    "page": 1,
+                    "text": source_text
+                }]
+
+                notes = generate_website_notes(source_text)
+
+            st.subheader(website["title"])
+            st.caption(f"Source: {website['url']}")
+
+            if notes:
+                st.markdown(notes)
+            else:
+                st.warning(
+                    "Website text was extracted, but AI notes could not be "
+                    "generated. Check your GROQ_API_KEY in the .env file."
+                )
+
+            with st.expander("View extracted website text"):
+                st.write(source_text)
+
+        except Exception as error:
+            st.error(f"Website processing failed: {error}")
+
+
+
+# ---------------- YouTube to Notes ----------------
+
+st.markdown("## 🎥 YouTube Video to Notes")
+st.caption("Enter a YouTube video URL to extract its transcript and generate study notes.")
+
+youtube_url = st.text_input(
+    "YouTube Video URL",
+    placeholder="https://www.youtube.com/watch?v=..."
+)
+
+if st.button("Generate YouTube Notes", key="generate_youtube_notes"):
+    if not youtube_url.strip():
+        st.warning("Please enter a YouTube video URL.")
+    else:
+        try:
+            with st.spinner("Extracting transcript and generating notes..."):
+                video = extract_youtube_transcript(youtube_url)
+
+                transcript_text = video["text"][:12000]
+
+                notes = generate_website_notes(transcript_text)
+
+            st.subheader("YouTube Study Notes")
+            st.caption(f"Source: {video['url']}")
+
+            if notes:
+                st.markdown(notes)
+            else:
+                st.warning("Transcript extracted, but notes could not be generated.")
+
+            with st.expander("View extracted transcript"):
+                st.write(transcript_text)
+
+        except Exception as error:
+            st.error(f"YouTube processing failed: {error}")
+
+
+
+
 # ---------------- Sidebar ----------------
 with st.sidebar:
     st.header("📄 Document")
-    uploaded = st.file_uploader("Upload a PDF", type="pdf")
+    uploaded = st.file_uploader(
+    "Upload PDF documents",
+    type="pdf",
+    accept_multiple_files=True
+)
     k = st.slider("Passages to retrieve", 1, 5, 3)
     show_pages = st.toggle("Show highlighted PDF page", value=True)
     st.divider()
@@ -109,27 +200,81 @@ if not uploaded:
     st.stop()
 
 # ---------------- Process PDF ----------------
-if st.session_state.get("file_name") != uploaded.name:
-    pdf_bytes = uploaded.getvalue()
-    pages = extract_pages(pdf_bytes)
-    chunks = chunk_pages(pages)
-    if not chunks:
-        st.error("No text found. This may be a scanned PDF (OCR is not supported yet).")
-        st.stop()
-    with st.spinner("Reading and indexing your document..."):
-        r = Retriever(model=load_model())
-        r.build(chunks)
-    st.session_state.update(file_name=uploaded.name, pdf_bytes=pdf_bytes,
-                            pages=pages, chunks=chunks, retriever=r, q="")
+file_payloads = [(file.name, file.getvalue()) for file in uploaded]
 
-pages, chunks = st.session_state.pages, st.session_state.chunks
+file_signature = tuple(
+    (name, hashlib.sha256(data).hexdigest())
+    for name, data in file_payloads
+)
+
+if st.session_state.get("file_signature") != file_signature:
+    documents = {}
+    all_chunks = []
+
+    for index, (file_name, pdf_bytes) in enumerate(file_payloads):
+        content_hash = hashlib.sha256(pdf_bytes).hexdigest()
+
+        source_id = hashlib.sha256(
+            f"{index}:{file_name}:{content_hash}".encode()
+        ).hexdigest()[:12]
+
+        pages_for_file = extract_pages(pdf_bytes)
+        chunks_for_file = chunk_pages(pages_for_file)
+
+        for chunk in chunks_for_file:
+            chunk["source_id"] = source_id
+            chunk["source_name"] = file_name
+            all_chunks.append(chunk)
+
+        documents[source_id] = {
+            "name": file_name,
+            "pdf_bytes": pdf_bytes,
+            "pages": pages_for_file
+        }
+
+    if not all_chunks:
+        st.error(
+            "No extractable text found in the uploaded PDFs. "
+            "Please check whether the PDF contains readable text or scanned pages."
+        )
+        st.stop()
+
+    with st.spinner("Reading and indexing your PDF documents..."):
+        r = Retriever(model=load_model())
+        r.build(all_chunks)
+
+    st.session_state.update(
+        file_signature=file_signature,
+        documents=documents,
+        chunks=all_chunks,
+        retriever=r,
+        q="",
+        last_key=None
+    )
+
+documents = st.session_state.documents
+chunks = st.session_state.chunks
+
+total_pages = sum(
+    len(document["pages"]) for document in documents.values()
+)
+
+empty = sum(
+    count_empty_pages(document["pages"])
+    for document in documents.values()
+)
+
 m1, m2, m3 = st.columns(3)
-m1.metric("Pages", len(pages))
-m2.metric("Chunks indexed", len(chunks))
-empty = count_empty_pages(pages)
-m3.metric("Pages without text", empty)
+m1.metric("PDFs uploaded", len(documents))
+m2.metric("Pages", total_pages)
+m3.metric("Chunks indexed", len(chunks))
+
 if empty:
-    st.warning(f"{empty} page(s) have no extractable text (possibly scanned images).")
+    st.warning(
+        f"{empty} page(s) have no extractable text "
+        "(possibly scanned images)."
+    )
+
 
 tab_ask, tab_doc = st.tabs(["💬 Ask", "📖 Browse document"])
 
@@ -142,9 +287,15 @@ with tab_ask:
 
     question = st.text_input("Your question", key="q", placeholder="e.g. What is overfitting?")
 
+
     if question:
         results = st.session_state.retriever.search(question, k=k)
-        cache_key = (st.session_state.file_name, question, k)
+
+        cache_key = (file_signature, question, k)
+        doc_names = ", ".join(
+            document["name"] for document in documents.values()
+        )
+
         if st.session_state.get("last_key") != cache_key:
             with st.spinner("Thinking..."):
                 try:
@@ -152,36 +303,81 @@ with tab_ask:
                 except Exception as e:
                     ans = None
                     st.warning(f"LLM call failed: {e}")
-            save_qa(question, ans or "", results, st.session_state.file_name)
-            st.session_state.last_key, st.session_state.last_ans = cache_key, ans
+
+            save_qa(question, ans or "", results, doc_names)
+            st.session_state.last_key = cache_key
+            st.session_state.last_ans = ans
+
         ans = st.session_state.last_ans
 
         st.subheader("Answer")
+
         if ans is None:
             st.info("No LLM key set. Showing evidence only.")
         else:
             cls = "answer nf" if ans.lower().startswith("not found") else "answer"
-            st.markdown(f'<div class="{cls}">{html.escape(ans)}</div>', unsafe_allow_html=True)
-
-        st.subheader("Evidence from the document")
-        for i, r in enumerate(results, 1):
-            label, color = match_label(r["score"])
             st.markdown(
-                f'<div class="ev"><b>#{i} · Page {r["page"]}</b>'
-                f'<span class="badge" style="background:{color}">{label} · {r["score"]:.2f}</span><br><br>'
-                f'{highlight(r["text"], question)}</div>', unsafe_allow_html=True)
-            st.progress(max(0.0, min(1.0, r["score"])))
+                f'<div class="{cls}">{html.escape(ans)}</div>',
+                unsafe_allow_html=True
+            )
+
+        st.subheader("Evidence from the documents")
+
+        for i, result in enumerate(results, 1):
+            label, color = match_label(result["score"])
+
+            st.markdown(
+                f'<div class="ev"><b>#{i} · '
+                f'{html.escape(result["source_name"])} · '
+                f'Page {result["page"]}</b>'
+                f'<span class="badge" style="background:{color}">'
+                f'{label} · {result["score"]:.2f}</span><br><br>'
+                f'{highlight(result["text"], question)}</div>',
+                unsafe_allow_html=True
+            )
+
+            st.progress(max(0.0, min(1.0, result["score"])))
+
             if show_pages:
-                with st.expander(f"View page {r['page']} in the PDF"):
-                    img = render_page(st.session_state.pdf_bytes, r["page"], r["text"])
+                with st.expander(
+                    f"View {result['source_name']} - Page {result['page']}"
+                ):
+                    source_document = documents[result["source_id"]]
+
+                    img = render_page(
+                        source_document["pdf_bytes"],
+                        result["page"],
+                        result["text"]
+                    )
+
                     if img:
                         st.image(img, use_container_width=True)
                     else:
                         st.caption("Could not render this page.")
 
-with tab_doc:
-    page_no = st.number_input("Page", 1, len(pages), 1)
-    st.text_area("Extracted text", pages[page_no - 1]["text"], height=350)
 
-st.divider()
-st.caption("StudyLens AI · Team: Reena, Harsha, Anjali, Shirin")
+with tab_doc:
+    source_ids = list(documents.keys())
+
+    selected_source_id = st.selectbox(
+        "Choose a PDF",
+        options=source_ids,
+        format_func=lambda source_id: documents[source_id]["name"]
+    )
+
+    selected_document = documents[selected_source_id]
+    selected_pages = selected_document["pages"]
+
+    page_no = st.number_input(
+        "Page",
+        min_value=1,
+        max_value=len(selected_pages),
+        value=1,
+        key="browse_page"
+    )
+
+    st.text_area(
+        "Extracted text",
+        selected_pages[page_no - 1]["text"],
+        height=350
+    )
