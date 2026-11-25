@@ -87,6 +87,9 @@ with st.sidebar:
     st.header("📄 Document")
     uploaded = st.file_uploader("Upload a PDF", type="pdf")
     k = st.slider("Passages to retrieve", 1, 5, 3)
+    style_label = st.selectbox(
+        "Explanation style", ["Simple", "Detailed", "Step-by-step"])
+    style = style_label.lower()
     show_pages = st.toggle("Show highlighted PDF page", value=True)
     st.divider()
     st.subheader("🕘 Recent questions")
@@ -144,11 +147,11 @@ with tab_ask:
 
     if question:
         results = st.session_state.retriever.search(question, k=k)
-        cache_key = (st.session_state.file_name, question, k)
+        cache_key = (st.session_state.file_name, question, k, style)
         if st.session_state.get("last_key") != cache_key:
             with st.spinner("Thinking..."):
                 try:
-                    ans = answer(question, results)
+                    ans = answer(question, results, style=style)
                 except Exception as e:
                     ans = None
                     st.warning(f"LLM call failed: {e}")
