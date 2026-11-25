@@ -10,6 +10,8 @@ from src.text_processor import chunk_pages
 from src.retriever import Retriever
 from src.answerer import answer
 from src.database import init_db, save_qa, get_history
+from src.study_tools_ui import render_study_tools
+from src.study_tools_ui import render_study_tools
 
 try:
     from src.pdf_processor import count_empty_pages
@@ -87,6 +89,9 @@ with st.sidebar:
     st.header("📄 Document")
     uploaded = st.file_uploader("Upload a PDF", type="pdf")
     k = st.slider("Passages to retrieve", 1, 5, 3)
+    style_label = st.selectbox(
+        "Explanation style", ["Simple", "Detailed", "Step-by-step"])
+    style = style_label.lower()
     show_pages = st.toggle("Show highlighted PDF page", value=True)
     st.divider()
     st.subheader("🕘 Recent questions")
@@ -131,8 +136,7 @@ m3.metric("Pages without text", empty)
 if empty:
     st.warning(f"{empty} page(s) have no extractable text (possibly scanned images).")
 
-tab_ask, tab_doc = st.tabs(["💬 Ask", "📖 Browse document"])
-
+tab_ask, tab_doc, tab_study = st.tabs(["💬 Ask", "📖 Browse document", "🎓 Study tools"])
 with tab_ask:
     st.caption("Try an example:")
     e1, e2, e3 = st.columns(3)
@@ -144,11 +148,11 @@ with tab_ask:
 
     if question:
         results = st.session_state.retriever.search(question, k=k)
-        cache_key = (st.session_state.file_name, question, k)
+        cache_key = (st.session_state.file_name, question, k, style)
         if st.session_state.get("last_key") != cache_key:
             with st.spinner("Thinking..."):
                 try:
-                    ans = answer(question, results)
+                    ans = answer(question, results, style=style)
                 except Exception as e:
                     ans = None
                     st.warning(f"LLM call failed: {e}")
@@ -183,5 +187,7 @@ with tab_doc:
     page_no = st.number_input("Page", 1, len(pages), 1)
     st.text_area("Extracted text", pages[page_no - 1]["text"], height=350)
 
+with tab_study:
+    render_study_tools(chunks, st.session_state.file_name)
 st.divider()
 st.caption("StudyLens AI · Team: Reena, Harsha, Anjali, Shirin")
