@@ -46,7 +46,7 @@ def build_prompt(question: str, results, style: str = DEFAULT_STYLE) -> str:
                          passages=build_passages(results), question=question)
 
 
-def answer(question: str, results, model: str = "llama-3.1-8b-instant",
+def answer(question: str, results, model: str = "openai/gpt-oss-20b",
            style: str = DEFAULT_STYLE):
     key = os.getenv("GROQ_API_KEY")
     if not key:
