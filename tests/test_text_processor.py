@@ -47,3 +47,6 @@ def test_chunk_ids_are_sequential():
 
     assert [chunk["chunk_id"] for chunk in chunks] == list(range(len(chunks)))
 
+def test_clean_text_joins_hyphenated_line_breaks():
+    text = "This is an exam-\nple sentence."
+    assert clean_text(text) == "This is an example sentence."
