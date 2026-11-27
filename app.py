@@ -20,8 +20,10 @@ from src.database import (
     update_note,
     delete_note,
 )
+
 from src.notes_generator import generate_notes
 from src.quiz_generator import generate_quiz
+from src.study_tools_ui import render_study_tools
 
 try:
     from src.pdf_processor import count_empty_pages
@@ -171,31 +173,34 @@ def set_question(text):
 
 with st.sidebar:
     st.header("📄 Document")
+uploaded = st.file_uploader(
+    "Upload a PDF",
+    type="pdf"
+)
 
-    uploaded = st.file_uploader(
-        "Upload a PDF",
-        type="pdf"
-    )
+k = st.slider(
+    "Passages to retrieve",
+    1, 5, 3
+)
 
-    k = st.slider(
-        "Passages to retrieve",
-        1, 5, 3
-    )
+style_label = st.selectbox(
+    "Explanation style",
+    ["Simple", "Detailed", "Step-by-step"]
+)
 
-    show_pages = st.toggle(
-        "Show highlighted PDF page",
-        value=True
-    )
+style = style_label.lower()
 
-    st.divider()
-    st.subheader("🕘 Recent questions")
-
-    history = get_history(limit=5)
-
-    if not history:
+show_pages = st.toggle(
+    "Show highlighted PDF page",
+    value=True
+)
+st.divider()
+st.subheader("🕘 Recent questions")
+history = get_history(limit=5)
+if not history:
         st.caption("No questions yet.")
 
-    for h in history:
+for h in history:
         st.caption(
             f"**{h['question']}**  \nPages: {h['pages']}"
         )
@@ -219,8 +224,13 @@ tab_ask, tab_doc, tab_notes, tab_quiz = st.tabs([
     "🧠 Quizzes & Tests"
 ])
 
-# ---------------- Ask Tab ----------------
-
+tab_ask, tab_doc, tab_notes, tab_quiz, tab_study = st.tabs([
+    "💬 Ask",
+    "📖 Browse document",
+    "📝 Smart Notes",
+    "🧠 Quizzes & Tests",
+    "🛠️ Study tools"
+])
 with tab_ask:
 
     if not uploaded:
@@ -231,6 +241,19 @@ with tab_ask:
             unsafe_allow_html=True
         )
 
+    if question:
+        results = st.session_state.retriever.search(question, k=k)
+        cache_key = (st.session_state.file_name, question, k, style)
+        if st.session_state.get("last_key") != cache_key:
+            with st.spinner("Thinking..."):
+                try:
+                    ans = answer(question, results, style=style)
+                except Exception as e:
+                    ans = None
+                    st.warning(f"LLM call failed: {e}")
+                save_qa(question, ans or "", results, st.session_state.file_name)
+                st.session_state.last_key, st.session_state.last_ans = cache_key, ans
+        ans = st.session_state.last_ans
         c2.markdown(
             '<div class="step"><b>2. Ask</b><br>Type any question about the document.</div>',
             unsafe_allow_html=True
@@ -765,6 +788,8 @@ with tab_quiz:
 
 # ---------------- Footer ----------------
 
+with tab_study:
+    render_study_tools(chunks, st.session_state.file_name)
 st.divider()
 
 st.caption(
