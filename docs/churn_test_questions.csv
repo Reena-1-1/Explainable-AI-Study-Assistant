@@ -1,0 +1,22 @@
+question,expected_page,answerable
+What is the target field in the dataset?,2,yes
+How many rows and columns does the CSV contain?,2,yes
+What percentage of customers exited?,2,yes
+Which country had the highest churn rate?,3,yes
+Why was the Year column dropped?,2,yes
+How is BalanceSalaryRatio calculated?,3,yes
+How was the data split into training and test sets?,3,yes
+Which model achieved the highest accuracy?,2|4,yes
+Why was Random Forest kept as the deployed model?,4,yes
+What is the recall of the Decision Tree?,4,yes
+How many churners did the Random Forest miss?,5,yes
+Which explainability techniques are used?,2|5|6,yes
+What does partial dependence show for age?,6,yes
+What does the what-if scenario simulator do?,7,yes
+Why should the churn rates for three and four products be treated with caution?,3|8,yes
+What does the report recommend about the decision threshold?,5|7,yes
+Who won the 2018 World Cup?,0,no
+What accuracy did the neural network model achieve?,0,no
+What interest rate does the bank charge on loans?,0,no
+Who is the author of this report?,0,no
+How much revenue did the bank lose because of churn?,0,no

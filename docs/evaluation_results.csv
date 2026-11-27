@@ -1,0 +1,22 @@
+question,answerable,expected_page,pages_found,best_score,result
+What is the target field in the dataset?,yes,2,2;3;7,0.357,PASS
+How many rows and columns does the CSV contain?,yes,2,2;3;3,0.355,PASS
+What percentage of customers exited?,yes,2,3;6;2,0.531,PASS
+Which country had the highest churn rate?,yes,3,3;6;4,0.542,PASS
+Why was the Year column dropped?,yes,2,3;2;3,0.329,PASS
+How is BalanceSalaryRatio calculated?,yes,3,7;3;6,0.302,PASS
+How was the data split into training and test sets?,yes,3,3;7;4,0.396,PASS
+Which model achieved the highest accuracy?,yes,2|4,4;4;8,0.399,PASS
+Why was Random Forest kept as the deployed model?,yes,4,4;5;7,0.393,PASS
+What is the recall of the Decision Tree?,yes,4,4;5;4,0.432,PASS
+How many churners did the Random Forest miss?,yes,5,5;7;6,0.465,PASS
+Which explainability techniques are used?,yes,2|5|6,5;7;2,0.262,PASS
+What does partial dependence show for age?,yes,6,6;5;3,0.292,PASS
+What does the what-if scenario simulator do?,yes,7,7;2;1,0.289,PASS
+Why should the churn rates for three and four products be treated with caution?,yes,3|8,3;6;8,0.556,PASS
+What does the report recommend about the decision threshold?,yes,5|7,4;5;2,0.439,PASS
+Who won the 2018 World Cup?,no,-,4;4;5,0.081,PASS
+What accuracy did the neural network model achieve?,no,-,4;4;4,0.331,FAIL
+What interest rate does the bank charge on loans?,no,-,6;4;3,0.392,FAIL
+Who is the author of this report?,no,-,1;5;2,0.145,PASS
+How much revenue did the bank lose because of churn?,no,-,6;3;7,0.586,FAIL
