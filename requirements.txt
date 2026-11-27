@@ -6,3 +6,6 @@ numpy
 requests
 python-dotenv
 pytest
+pytesseract
+Pillow
+youtube-transcript-api
